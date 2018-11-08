@@ -1,6 +1,6 @@
 /*
     This sketch demonstrates how to set up a simple HTTP-like server.
-    The server will set a GPIO pin depending on the request
+    The server will set the servo depending on the request
       http://server_ip/servo/right will set the servo to 0,
       http://server_ip/servo/left will set the servo to 180
     server_ip is the IP address of the ESP8266 module, will be
@@ -41,50 +41,52 @@ void setup() {
 
  
   server.begin();//Start the server
-  Serial.println("Server started");
+  Serial.println("Server started");//Prints out on serial moniter
 
   Serial.print("http://");
-  Serial.print(WiFi.localIP());//Print the IP address
+  Serial.print(WiFi.localIP());//Print the IP address link
 }
 
 void loop() {
-  // Check if a client has connected
+
   WiFiClient client = server.available();
-  if (!client) {
-    return;
+  if (!client) {//If the client fails to initialize
+    return;//start over
   }
 
-  // Wait until the client sends some data
   Serial.println("new client");
   while (!client.available()) {
-    delay(1);
+    delay(1);//Wait for a client to connect
   }
 
-  // Read the first line of the request
-  String req = client.readStringUntil('\r');
-  Serial.println(req);
-  client.flush();
+  String req = client.readStringUntil('\r');//Start reading the clients request
+  Serial.println(req);//print out the request
+  client.flush();//clear it to save memory
 
-  // Match the request
   int val;
-  if (req.indexOf("/servo/left") != -1) {//If the url being visited is http://(IP Address)/servo/left
-    val = 0;
-  } else if (req.indexOf("/servo/right") != -1) {//If the url being visited is http://(IP Address)/servo/right
-    val = 1;
-  } else if (req.indexOf("/") != -1) {//If the url being visited is http://(IP Address)/
-    
-  }else {
+  if (req.indexOf("/servo/left") != -1)//If the url being visited is http://(IP Address)/servo/left 
+  {
+    pos = 0;//set servo to 0
+  } 
+  else if (req.indexOf("/servo/right") != -1)//If the url being visited is http://(IP Address)/servo/right
+  {
+    pos = 180;//set servo to 180
+  } 
+  else if (req.indexOf("/") != -1)//If the url being visited is http://(IP Address)/
+  {
+    //do nothing just print the page
+  }
+  else 
+  {
     Serial.println("invalid request");
     client.stop();
     return;
   }
 
-  int pos = 180*val;//So if the url was /left, val is 0 and the position becomes 180*0 which is 0, but if the url is /right then the servo will go to position 180*1 which is 180
-  frontDoorLock.write(pos);//Make the servo go to pos
-
+  frontDoorLock.write(pos);//Make the servo go to position "pos"
   client.flush();
 
-  // Prepare the response
+  //Prepare the webpage
   String webPage = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE HTML>\r\n<html>\r\n<div><h1>Servo Status: ";
   webPage += (val) ? "left" : "right";
   webPage += "</h1></div><a href='/servo/left'>Left</a><a href='/servo/right'>Right</a>";
